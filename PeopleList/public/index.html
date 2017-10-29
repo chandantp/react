@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fortune Favors The Bold</title>
+</head>
+<body>
+    <div id="app"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.0/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.0/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.38/browser.min.js"></script>
+    <style type="text/css">
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+            padding: 15px;
+            text-align: left;
+        }
+    </style>
+    <script type="text/babel">
+        class PeopleList extends React.Component {
+            
+            constructor() {
+                super()
+                this.state = {
+                    persons: []
+                }
+            }
+
+            loadPersons() {   
+                fetch("http://localhost:3000/people")
+                    .then(response => response.json())
+                    .then(jsonPersons => {
+                        var pids = [];
+                        jsonPersons.forEach(p => {
+                            pids.push(p.id);
+                            p.skills = [],
+                            p.interests = []
+                        });
+                        this.setState({ persons: jsonPersons});
+                        this.loadSkills(pids, jsonPersons);
+                        this.loadInterests(pids, jsonPersons);
+                    }).catch(function(error) {
+                        alert("API Error = " + error);
+                        console.log(error);
+                    });
+            }
+
+            loadSkills(pids, persons) {
+                fetch("http://localhost:3000/skills?personIds=" + pids.join())
+                    .then(response => response.json())
+                    .then(jsonSkills => {
+                        jsonSkills.forEach(s => {
+                            persons.find(p => p.id == s.personId).skills.push(s.name);
+                        });
+                        this.setState({ persons: persons});
+                    });
+            }
+
+            loadInterests(pids, persons) {
+                fetch("http://localhost:3000/interests?personIds=" + pids.join())
+                    .then(response => response.json())
+                    .then(jsonInterests => {
+                        jsonInterests.forEach(i => {
+                            persons.find(p => p.id == i.personId).interests.push(i.name);
+                        });
+                        this.setState({ persons: persons});
+                    });
+            }
+
+            componentDidMount() {
+                this.loadPersons();
+            }
+
+            render() {
+                const rows = []
+                this.state.persons.forEach(p => {
+                    const richest = p.name.toLowerCase() == "bill gates" ? true : false;
+                    rows.push(
+                        <tr key={p.id} style={ richest ? {fontWeight: 'bold'} : {fontWeight: 'normal'} } >
+                            <td>{p.name}</td>
+                            <td>{p.org}</td>
+                            <td>{p.skills.join()}</td>
+                            <td>{p.interests.join()}</td>
+                        </tr>
+                    );
+                });
+
+                return (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Company</th>
+                                <th>Skills</th>
+                                <th>Interests</th>
+                            </tr>
+                        </thead>
+                        <tbody>{rows}</tbody>
+                    </table>
+                );
+            }
+        }
+
+        ReactDOM.render(<PeopleList />, document.getElementById('app'))
+    </script>
+
+</body>
+</html>
